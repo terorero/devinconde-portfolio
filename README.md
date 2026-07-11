@@ -1,4 +1,4 @@
-# Devin Conde Mancilla - Portfolio & Job Search Bolivia
+# Devin Conde Mancilla - Infrastructure Portfolio
 
 **Analista de Infraestructura y Seguridad Informática | SYSADMIN**  
 25+ años experiencia | La Paz, Bolivia | Disponible  
@@ -11,7 +11,6 @@
 ```
 devinconde-portfolio/
 ├── README.md                          # Este archivo - Índice general
-├── job-search-bolivia.md              # Análisis de mercado + estrategia empleo BO
 ├── hardening/
 │   ├── README.md                      # Documentación hardening
 │   └── linux-hardening.sh             # Script hardening CIS + 25 años exp
@@ -119,42 +118,7 @@ devinconde-portfolio/
 
 ---
 
-## 🔍 ANÁLISIS MERCADO LABORAL BOLIVIA
-
-### Ofertas encontradas (muestra julio 2026)
-| Portal | Categorías relevantes | Hallazgos |
-|--------|----------------------|-----------|
-| **Computrabajo BO** | SysAdmin, DevOps, Cloud, Seguridad, Linux, Ingeniero Sistemas | 4-8 ofertas activas/categoría; mucho ruido junior/académico |
-| **LinkedIn Jobs BO** | 3 ofertas "Sysadmin" visibles en meta | Mejor canal para senior - requiere login manual |
-| **Bumeran/Trabajando** | Bloqueados para bots | Revisión manual necesaria |
-
-### Sectores objetivo en Bolivia
-1. **Banca/Finanzas** (BNB, BCP, Unión, Mercantil, Ganadero, FIE, Prodem) - Infra crítica 24/7
-2. **Telcos** (Tigo, Entel, Viva) - VoIP, Linux masivo, automatización
-3. **Energía/Óleo** (YPFB, ENDE, Transredes) - Datacenters, SCADA, seguridad OT/IT
-4. **Gobierno** (Aduana, Impuestos, Gov. Municipal, UMSA, UCB) - Estabilidad, Linux, Zimbra
-5. **Medios** (La Razón, El Deber, Los Tiempos, Red Uno, Unitel) - 24/7, publishing, streaming
-6. **Retail/Industria** (CBN, Pil, SOBOCE) - ERP, Windows/Linux híbrido, POS
-7. **Consultoras** (Assa, Datacom, Tecnoserv, Softtek, Globant, NTT Data) - Proyectos variados
-
----
-
-## 🚀 PLAN DE ACCIÓN INMEDIATO (7 DÍAS)
-
-| Día | Acción | Estado |
-|-----|--------|--------|
-| **Hoy** | ✅ Configurar alertas LinkedIn + Computrabajo + "Open to work" | 🔲 |
-| **Día 1** | Revisar 20 ofertas → postular a 5-8 mejor match | 🔲 |
-| **Día 2** | Contactar 5 ex-colegas (CSBP, La Razón, Transturin) | 🔲 |
-| **Día 3** | ✅ Subir 3-5 proyectos a GitHub público → enlazar en web/LinkedIn | ✅ **HECHO** |
-| **Día 4** | Escribir 1 post técnico LinkedIn (Zimbra/HA Proxmox/VoIP) | 🔲 |
-| **Día 5** | Identificar 3 headhunters IT Bolivia → conectar + enviar CV | 🔲 |
-| **Día 6** | Postular directo 3 empresas objetivo (web RRHH: Tigo, Entel, YPFB, BNB, BCP) | 🔲 |
-| **Día 7** | Revisar respuestas → ajustar CV/perfil → planear semana 2 | 🔲 |
-
----
-
-## 💎 PROYECTOS GITHUB CREADOS (Opción 3 - COMPLETADA)
+## 💎 PROYECTOS DESTACADOS
 
 ### 1. **Linux Hardening Baseline** ⭐⭐⭐⭐⭐
 ```
@@ -252,37 +216,33 @@ backup-dr/
 
 ## 📝 PRÓXIMOS PASOS SUGERIDOS
 
-1. **Hacer push a GitHub:**
+1. **Crear repo en GitHub** y hacer push:
    ```bash
    cd /Users/terorero/Developer/7.Hermes/devinconde-portfolio
-   git init
-   git add .
-   git commit -m "feat: complete infrastructure portfolio - hardening, monitoring, IaC, backup/DR"
    git remote add origin https://github.com/terorero/devinconde-portfolio.git
    git push -u origin main
    ```
 
-2. **Añadir badges a README principal:**
+2. **Configurar GitHub Pages** (Settings → Pages → Source: Deploy from branch / main / root)
+
+3. **Añadir badges** al README:
    ```markdown
    ![GitHub stars](https://img.shields.io/github/stars/terorero/devinconde-portfolio)
    ![GitHub last commit](https://img.shields.io/github/last-commit/terorero/devinconde-portfolio)
    ![License](https://img.shields.io/github/license/terorero/devinconde-portfolio)
    ```
 
-3. **Configurar GitHub Actions** para linting (shellcheck, ansible-lint, terraform fmt)
+4. **Configurar GitHub Actions** para linting (shellcheck, ansible-lint, terraform fmt)
 
-4. **Escribir 3 artículos técnicos** para blog/LinkedIn:
+5. **Escribir 3 artículos técnicos** para blog/LinkedIn:
    - "Migración Exchange → Zimbra: 0 licencias, 200 usuarios, 15 años"
    - "HA con Proxmox + Synology: 24/7 en medio de comunicación"
    - "VoIP empresarial: Asterisk + Avaya integración real"
-
-5. **Mantener job-search-bolivia.md actualizado** con nuevas ofertas/contactos semanalmente
 
 ---
 
 ## 📌 NOTAS DE MANTENIMIENTO
 
-- **job-search-bolivia.md**: Actualizar semanalmente con nuevas ofertas, contactos, estado aplicaciones
 - **Portfolio GitHub**: Añadir 1 proyecto/mes (rotar: security, monitoring, IaC, cloud, voip)
 - **CV Web**: Sincronizar con GitHub projects destacados cada trimestre
 - **LinkedIn**: Post técnico mensual + actualizar "Featured" con últimos repos
