@@ -78,6 +78,44 @@ Stack completo Prometheus+Grafana+Alertmanager para 200+ usuarios
 
 ---
 
+### 5. **Immich Media Platform - La Razón (Producción)** ⭐⭐⭐⭐⭐
+Implementación completa de plataforma autohospedada de gestión multimedia para **Comunicaciones El País** (periódico principal Bolivia)
+
+**Contexto:** Aprovechamiento de servidor existente **ThinkServer RD630** (RAID 5, 2TB) para despliegue dual:
+- **Immich**: Gestión fotos/videos con IA (reconocimiento facial, búsqueda multimodal, organización automática)
+- **Sistema contable**: Contenedor independiente en misma infraestructura
+
+**Arquitectura Docker:**
+- Aislamiento de servicios vía redes virtuales y volúmenes dedicados
+- Balanceo de recursos entre aplicaciones
+- Backup unificado (Borg + Synology Hyper Backup)
+- Cifrado extremo a extremo, cero nube pública
+
+**Funciones clave entregadas:**
+- Backup automático desde móviles/cámaras a servidor privado
+- Clasificación IA: etiquetas, ubicación, fechas, rostros, objetos
+- Búsqueda multimodal (texto, voz, metadatos, filtros combinados)
+- Permisos granulares por usuario/equipo, álbumes con enlaces temporales
+- Cumplimiento RGPD, soberanía de datos editorial y financiera
+
+**Plan de implementación ejecutado (8 días):**
+1. **Fase 1** (2d): Docker en RD630, particionado lógico RAID 5, redes virtuales, políticas backup
+2. **Fase 2** (3d): Contenedores Immich + sistema contable, balanceo recursos, pruebas rendimiento
+3. **Fase 3** (2d): Integración flujos editoriales, APIs, capacitación equipo TI
+4. **Fase 4** (1d): Manuales, capacitación usuarios, perfiles
+5. **Fase 5** (continua): Monitoreo, optimización, actualizaciones seguridad
+
+**Beneficios medibles:**
+- **Costo cero hardware adicional** (reutilización RD630 existente)
+- **Eliminación Google Photos/Dropbox** (ahorro licencias + soberanía datos)
+- **ROI inmediato**: recuperación archivos históricos en seg vs horas
+- **Seguridad**: aislamiento contenedores, respaldos integrados, trazabilidad accesos
+- **Escalabilidad**: crecimiento independiente ambos servicios
+
+📁 `docs/immich-la-razon/` (documentación arquitectura, docker-compose, runbooks)
+
+---
+
 ## 📊 MÉTRICAS DE VALOR PARA RECLUTADORES
 
 | Proyecto | Líneas | Tecnologías | Valor demostrado |
