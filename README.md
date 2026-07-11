@@ -4,6 +4,15 @@
 25+ años experiencia | La Paz, Bolivia | Disponible  
 🌐 https://www.devinconde.com | 💼 https://www.linkedin.com/in/devin-conde-mancilla-21038315
 
+![GitHub last commit](https://img.shields.io/github/last-commit/terorero/devinconde-portfolio)
+![GitHub stars](https://img.shields.io/github/stars/terorero/devinconde-portfolio?style=social)
+![GitHub forks](https://img.shields.io/github/forks/terorero/devinconde-portfolio?style=social)
+![GitHub license](https://img.shields.io/github/license/terorero/devinconde-portfolio)
+![GitHub repo size](https://img.shields.io/github/repo-size/terorero/devinconde-portfolio)
+![GitHub Pages](https://img.shields.io/website?url=https%3A%2F%2Fterorero.github.io%2Fdevinconde-portfolio%2F&label=GitHub%20Pages)
+![Top language](https://img.shields.io/github/languages/top/terorero/devinconde-portfolio)
+![Language count](https://img.shields.io/github/languages/count/terorero/devinconde-portfolio)
+
 ---
 
 ## 📁 ESTRUCTURA DEL PORTAFOLIO
