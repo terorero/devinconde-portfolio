@@ -1,0 +1,92 @@
+# _config.yml - GitHub Pages Jekyll Configuration
+title: "Devin Conde Mancilla - Infrastructure Portfolio"
+description: "Senior SysAdmin | Infrastructure Engineer | Security Specialist | 25+ years experience | La Paz, Bolivia"
+author: "Devin Richard Conde Mancilla"
+email: "info@devinconde.com"
+url: "https://terorero.github.io"
+baseurl: "/devinconde-portfolio"
+
+# Theme
+theme: minima
+remote_theme: jekyll/minima
+
+# Plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-feed
+
+# Markdown
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: true
+
+# Relative links
+relative_links:
+  enabled: true
+  collections: true
+
+# Collections
+collections:
+  projects:
+    output: true
+    permalink: /projects/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "projects"
+    values:
+      layout: project
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# SEO
+twitter:
+  username: terorero
+  card: summary_large_image
+
+social:
+  name: Devin Conde Mancilla
+  links:
+    - https://www.linkedin.com/in/devin-conde-mancilla-21038315
+    - https://github.com/terorero
+    - https://www.devinconde.com
+
+# Exclude from processing
+exclude:
+  - vendor/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - ".git/"
+  - ".github/"
+  - "*.sh"
+  - "*.yml"
+  - "*.yaml"
+  - "*.json"
+  - "*.tf"
+  - "docs/"
+  - "backup-dr/"
+  - "hardening/"
+  - "monitoring/"
+  - "infrastructure-as-code/"
+  - "voip-telephony/"
+  - "security/"
+  - "cloud-hybrid/"
+
+# Include README
+include:
+  - README.md
+
+# Sass
+sass:
+  style: compressed
