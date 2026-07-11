@@ -8,7 +8,6 @@ baseurl: "/devinconde-portfolio"
 
 # Theme
 theme: minima
-remote_theme: jekyll/minima
 
 # Plugins
 plugins:
