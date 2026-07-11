@@ -1,0 +1,86 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alerts@devinconde.com'
+  smtp_auth_username: 'alerts@devinconde.com'
+  smtp_auth_password_file: '/etc/alertmanager/secrets/smtp_password'
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    
+    # Mail service alerts
+    - match:
+        service: mail
+      receiver: 'mail-alerts'
+      continue: true
+    
+    # Firewall alerts
+    - match:
+        service: firewall
+      receiver: 'firewall-alerts'
+      continue: true
+    
+    # Infrastructure alerts
+    - match:
+        service: infrastructure
+      receiver: 'infra-alerts'
+
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'sysadmin@devinconde.com'
+        send_resolved: true
+        headers:
+          Subject: '[ALERT] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'sysadmin@devinconde.com,oncall@devinconde.com'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/XXX/XXX/XXX'
+        send_resolved: true
+
+  - name: 'mail-alerts'
+    email_configs:
+      - to: 'mail-admin@devinconde.com,sysadmin@devinconde.com'
+        send_resolved: true
+        headers:
+          Subject: '[MAIL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+
+  - name: 'firewall-alerts'
+    email_configs:
+      - to: 'net-admin@devinconde.com,sysadmin@devinconde.com'
+        send_resolved: true
+        headers:
+          Subject: '[FIREWALL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/XXX/XXX/XXX'
+        send_resolved: true
+
+  - name: 'infra-alerts'
+    email_configs:
+      - to: 'infra-team@devinconde.com'
+        send_resolved: true
+        headers:
+          Subject: '[INFRA] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

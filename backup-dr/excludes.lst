@@ -1,0 +1,107 @@
+# Borg Backup Excludes - Devin Conde Mancilla
+# Patterns are relative to filesystem root
+
+# System directories
+/dev
+/proc
+/sys
+/run
+/tmp
+/var/tmp
+/var/run
+/var/lock
+
+# Virtual filesystems
+/sys/fs/cgroup
+/sys/kernel/debug
+/sys/kernel/tracing
+
+# Package manager caches
+/var/cache/apt
+/var/cache/dnf
+/var/cache/yum
+/var/cache/zypper
+/var/lib/apt/lists
+/root/.cache
+
+# Temporary and cache files
+*/tmp/*
+*/cache/*
+*/.cache/*
+*/__pycache__/*
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*~
+
+# Logs (keep recent via logrotate)
+/var/log/*.gz
+/var/log/*.xz
+/var/log/*.bz2
+/var/log/journal/*
+/var/log/*.old
+/var/log/*.log.*
+
+# Database files (use dedicated backup)
+/var/lib/mysql/*
+/var/lib/postgresql/*
+/var/lib/mongodb/*
+/var/lib/redis/*
+
+# Container/VM data (use dedicated backup)
+/var/lib/docker/*
+/var/lib/libvirt/*
+/var/lib/lxc/*
+/var/lib/containers/*
+
+# Backup repositories (avoid recursive backup)
+/backup/*
+/mnt/backup/*
+/media/backup/*
+
+# ISO images and large media
+*.iso
+*.img
+*.qcow2
+*.vdi
+*.vmdk
+*.ova
+*.ovf
+
+# Compiled objects
+*.o
+*.so
+*.a
+*.ko
+
+# Kernels and initramfs (can be reinstalled)
+/boot/vmlinuz*
+/boot/initrd*
+/boot/initramfs*
+
+# Snapshots and checkpoints
+*.snapshot
+*.checkpoint
+*/snapshots/*
+
+# Application-specific excludes
+# Zimbra (has own backup)
+/opt/zimbra/backup/*
+/opt/zimbra/redolog/*
+/opt/zimbra/log/*
+/opt/zimbra/data/ldap/mdb/*
+
+# Monitoring
+/var/lib/prometheus/*
+/var/lib/grafana/*
+/var/lib/alertmanager/*
+
+# Kubernetes
+/var/lib/kubelet/*
+/var/lib/etcd/*
+
+# Custom marker files
+.nobackup
+.nosync

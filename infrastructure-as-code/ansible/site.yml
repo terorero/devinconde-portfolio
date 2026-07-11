@@ -1,0 +1,149 @@
+---
+# Ansible Infrastructure as Code - Production Ready
+# Devin Conde Mancilla - https://www.devinconde.com
+
+- name: Bootstrap and configure Linux servers
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars/common.yml
+    - "vars/{{ ansible_os_family }}.yml"
+    - vault.yml
+  
+  pre_tasks:
+    - name: Update package cache
+      package:
+        name: '*'
+        state: latest
+      when: ansible_pkg_mgr in ['apt', 'dnf', 'yum', 'zypper']
+      tags: ['packages', 'bootstrap']
+
+    - name: Install required packages for Ansible
+      package:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - wget
+          - gnupg2
+          - ca-certificates
+          - software-properties-common
+        state: present
+      tags: ['bootstrap']
+
+  roles:
+    - role: common
+      tags: ['common']
+    - role: ssh-hardening
+      tags: ['ssh', 'security']
+    - role: firewall
+      tags: ['firewall', 'security']
+    - role: monitoring
+      tags: ['monitoring']
+    - role: backup
+      tags: ['backup']
+    - role: docker
+      tags: ['docker']
+    - role: zabbix-agent
+      tags: ['zabbix', 'monitoring']
+    - role: auditd
+      tags: ['audit', 'security']
+    - role: fail2ban
+      tags: ['fail2ban', 'security']
+    - role: logrotate
+      tags: ['logrotate']
+    - role: chrony
+      tags: ['time', 'chrony']
+    - role: sudoers
+      tags: ['sudo', 'security']
+    - role: kernel-hardening
+      tags: ['kernel', 'security']
+    - role: zabbix-agent
+      tags: ['zabbix']
+    - role: prometheus-node-exporter
+      tags: ['prometheus', 'monitoring']
+
+- name: Configure Zimbra Mail Server
+  hosts: zimbra
+  become: true
+  vars_files:
+    - vars/zimbra.yml
+    - vault.yml
+  roles:
+    - role: zimbra
+      tags: ['zimbra', 'mail']
+
+- name: Configure FortiGate Firewall (via API)
+  hosts: fortigate
+  connection: local
+  become: false
+  vars_files:
+    - vars/fortigate.yml
+    - vault.yml
+  roles:
+    - role: fortigate
+      tags: ['fortigate', 'firewall', 'network']
+
+- name: Configure Docker Swarm Cluster
+  hosts: swarm_managers:swarm_workers
+  become: true
+  vars_files:
+    - vars/docker.yml
+    - vault.yml
+  roles:
+    - role: docker-swarm
+      tags: ['docker', 'swarm']
+
+- name: Configure Kubernetes Cluster (kubeadm)
+  hosts: k8s_masters:k8s_workers
+  become: true
+  vars_files:
+    - vars/kubernetes.yml
+    - vault.yml
+  roles:
+    - role: kubernetes
+      tags: ['k8s', 'kubernetes']
+
+- name: Deploy Monitoring Stack
+  hosts: monitoring
+  become: true
+  vars_files:
+    - vars/monitoring.yml
+    - vault.yml
+  roles:
+    - role: prometheus
+      tags: ['prometheus']
+    - role: grafana
+      tags: ['grafana']
+    - role: alertmanager
+      tags: ['alertmanager']
+    - role: loki
+      tags: ['loki', 'logging']
+    - role: promtail
+      tags: ['promtail', 'logging']
+
+- name: Deploy Applications
+  hosts: app_servers
+  become: true
+  vars_files:
+    - vars/apps.yml
+    - vault.yml
+  roles:
+    - role: nginx
+      tags: ['nginx', 'web']
+    - role: postgresql
+      tags: ['postgresql', 'database']
+    - role: redis
+      tags: ['redis', 'cache']
+    - role: minio
+      tags: ['minio', 'storage']
+
+- name: Security Hardening Compliance Check
+  hosts: all
+  become: true
+  roles:
+    - role: lynis-audit
+      tags: ['lynis', 'audit', 'compliance']
+    - role: cis-benchmark
+      tags: ['cis', 'compliance', 'security']

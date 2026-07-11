@@ -1,0 +1,350 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PROMETHEUS - Time Series Database
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    user: "65534:65534"  # nobody user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--web.route-prefix=/'
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # ALERTMANAGER - Alert Management
+  # =============================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    hostname: alertmanager
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--data.retention=120d'
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # GRAFANA - Visualization
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:10.1.5
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    user: "472:472"  # grafana user
+    security_opt:
+      - no-new-privileges:true
+    read_only: false  # needs write for plugins
+    volumes:
+      - ./grafana-datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+      - ./grafana.ini:/etc/grafana/grafana.ini:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://monitoring.devinconde.com
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    secrets:
+      - grafana_password
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # =============================================================================
+  # NODE EXPORTER - Host Metrics
+  # =============================================================================
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro,rslave
+      - /sys:/host/sys:ro,rslave
+      - /etc/hostname:/etc/hostname:ro
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|run|var/lib/docker|var/lib/kubelet)($|/)'
+      - '--collector.systemd'
+      - '--collector.processes'
+      - '--collector.tcpstat'
+      - '--collector.netstat'
+      - '--collector.netclass'
+      - '--collector.wifi'
+      - '--collector.zfs'
+      - '--collector.edac'
+      - '--collector.thermal_zone'
+      - '--collector.hwmon'
+      - '--collector.bcache'
+      - '--collector.interrupts'
+      - '--collector.entropy'
+      - '--no-collector.bonding'
+      - '--no-collector.infiniband'
+      - '--no-collector.arp'
+    ports:
+      - "9100:9100"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # CADVISOR - Container Metrics
+  # =============================================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    hostname: cadvisor
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - '--housekeeping_interval=30s'
+      - '--max_housekeeping_interval=60s'
+      - '--event_storage_age_limit=2m'
+      - '--event_storage_event_limit=10000'
+      - '--disable_metrics=percpu,cpustat,nfs,tcp,udp'
+    ports:
+      - "8080:8080"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # BLACKBOX EXPORTER - Probing (HTTP, HTTPS, ICMP, TCP, DNS)
+  # =============================================================================
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: blackbox-exporter
+    hostname: blackbox-exporter
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    ports:
+      - "9115:9115"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9115/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # PUSHGATEWAY - Batch Job Metrics
+  # =============================================================================
+  pushgateway:
+    image: prom/pushgateway:v1.6.0
+    container_name: pushgateway
+    hostname: pushgateway
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - pushgateway-data:/pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # ZIMBRA EXPORTER - Custom (build from source)
+  # =============================================================================
+  zimbra-exporter:
+    build:
+      context: ./exporters/zimbra
+      dockerfile: Dockerfile
+    container_name: zimbra-exporter
+    hostname: zimbra-exporter
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    environment:
+      - ZIMBRA_HOST=mail.example.com
+      - ZIMBRA_PORT=7071
+      - ZIMBRA_USER=admin
+      - ZIMBRA_PASSWORD_FILE=/run/secrets/zimbra_password
+    secrets:
+      - zimbra_password
+    ports:
+      - "9101:9101"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9101/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # FORTINET EXPORTER - Custom (build from source)
+  # =============================================================================
+  fortinet-exporter:
+    build:
+      context: ./exporters/fortinet
+      dockerfile: Dockerfile
+    container_name: fortinet-exporter
+    hostname: fortinet-exporter
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    environment:
+      - FORTIGATE_HOST=firewall.example.com
+      - FORTIGATE_PORT=443
+      - FORTIGATE_USER=prometheus
+      - FORTIGATE_PASSWORD_FILE=/run/secrets/fortigate_password
+      - FORTIGATE_VRF=0
+    secrets:
+      - fortigate_password
+    ports:
+      - "9102:9102"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9102/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
+    name: monitoring-network
+    internal: false  # Allow outbound for scraping external targets
+    enable_ipv6: false
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  prometheus-data:
+    name: monitoring-prometheus-data
+  alertmanager-data:
+    name: monitoring-alertmanager-data
+  grafana-data:
+    name: monitoring-grafana-data
+  pushgateway-data:
+    name: monitoring-pushgateway-data
+
+# =============================================================================
+# SECRETS (managed externally, e.g., Docker Swarm secrets, Kubernetes secrets, 
+# or mounted files in production)
+# =============================================================================
+secrets:
+  grafana_password:
+    external: true
+  zimbra_password:
+    external: true
+  fortigate_password:
+    external: true

@@ -1,0 +1,234 @@
+{
+  "dashboard": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 0,
+    "id": 2,
+    "iteration": 1699999999999,
+    "links": [],
+    "panels": [
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [
+              {"type": "value", "options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}}
+            ],
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "id": 1,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "up{job=\"zimbra\"}", "legendFormat": "Zimbra", "refId": "A"}],
+        "title": "Zimbra Status",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1000}, {"color": "red", "value": 5000}]},
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "id": 2,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "zimbra_mta_queue_size", "legendFormat": "Queue", "refId": "A"}],
+        "title": "MTA Queue Size",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]},
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "id": 3,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "(zimbra_disk_used_bytes / zimbra_disk_total_bytes) * 100", "legendFormat": "Disk", "refId": "A"}],
+        "title": "Disk Usage (%)",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [{"type": "value", "options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}}],
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "id": 4,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "zimbra_ldap_up", "legendFormat": "LDAP", "refId": "A"},
+          {"expr": "zimbra_mailboxd_up", "legendFormat": "Mailboxd", "refId": "B"},
+          {"expr": "zimbra_mta_up", "legendFormat": "MTA", "refId": "C"},
+          {"expr": "zimbra_logger_up", "legendFormat": "Logger", "refId": "D"}
+        ],
+        "title": "Service Status",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "id": 5,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "rate(zimbra_mta_received_total[5m])", "legendFormat": "Received/sec", "refId": "A"},
+          {"expr": "rate(zimbra_mta_sent_total[5m])", "legendFormat": "Sent/sec", "refId": "B"},
+          {"expr": "rate(zimbra_mta_deferred_total[5m])", "legendFormat": "Deferred/sec", "refId": "C"},
+          {"expr": "rate(zimbra_mta_bounced_total[5m])", "legendFormat": "Bounced/sec", "refId": "D"}
+        ],
+        "title": "Mail Flow (messages/sec)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "id": 6,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "zimbra_active_users", "legendFormat": "Active Users", "refId": "A"},
+          {"expr": "zimbra_connected_clients", "legendFormat": "Connected Clients", "refId": "B"}
+        ],
+        "title": "Active Users & Connections",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "bytes"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "id": 7,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "zimbra_disk_used_bytes", "legendFormat": "Used", "refId": "A"},
+          {"expr": "zimbra_disk_total_bytes", "legendFormat": "Total", "refId": "B"}
+        ],
+        "title": "Disk Usage",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "id": 8,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "zimbra_amavis_queue_size", "legendFormat": "Amavis Queue", "refId": "A"},
+          {"expr": "zimbra_mta_queue_active", "legendFormat": "Active", "refId": "B"},
+          {"expr": "zimbra_mta_queue_deferred", "legendFormat": "Deferred", "refId": "C"},
+          {"expr": "zimbra_mta_queue_hold", "legendFormat": "Hold", "refId": "D"}
+        ],
+        "title": "Queue Details",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+        "id": 9,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "rate(zimbra_imap_commands_total[5m])", "legendFormat": "IMAP {{command}}", "refId": "A"},
+          {"expr": "rate(zimbra_pop_commands_total[5m])", "legendFormat": "POP {{command}}", "refId": "B"},
+          {"expr": "rate(zimbra_smtp_commands_total[5m])", "legendFormat": "SMTP {{command}}", "refId": "C"},
+          {"expr": "rate(zimbra_http_requests_total[5m])", "legendFormat": "HTTP {{method}}", "refId": "D"}
+        ],
+        "title": "Protocol Commands Rate",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "style": "dark",
+    "tags": ["zimbra", "mail", "infrastructure"],
+    "templating": {
+      "list": [
+        {
+          "allValue": null,
+          "current": {"selected": false, "text": "All", "value": "$__all"},
+          "datasource": "Prometheus",
+          "definition": "label_values(zimbra_mta_queue_size, instance)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Instance",
+          "multi": true,
+          "name": "instance",
+          "options": [],
+          "query": {"query": "label_values(zimbra_mta_queue_size, instance)", "refId": "StandardVariableQuery"},
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 1,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {},
+    "timezone": "",
+    "title": "Zimbra Mail Server",
+    "uid": "zimbra-mail-server",
+    "version": 1
+  },
+  "overwrite": true
+}

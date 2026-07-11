@@ -1,0 +1,599 @@
+groups:
+  - name: host-alerts
+    interval: 30s
+    rules:
+      # ===== NODE EXPORTER ALERTS =====
+      
+      # Host down
+      - alert: HostDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Host {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute"
+          runbook: "https://wiki.devinconde.com/runbooks/host-down"
+
+      # CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage on {{ $labels.instance }} is above 85% for 5 minutes"
+          runbook: "https://wiki.devinconde.com/runbooks/high-cpu"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage on {{ $labels.instance }} is above 95% for 2 minutes"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage on {{ $labels.instance }} is above 85% for 5 minutes"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage on {{ $labels.instance }} is above 95% for 2 minutes"
+
+      # Disk usage
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Root filesystem on {{ $labels.instance }} has less than 15% free"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Disk space critical on {{ $labels.instance }}"
+          description: "Root filesystem on {{ $labels.instance }} has less than 5% free"
+
+      - alert: DiskInodesWarning
+        expr: (node_filesystem_files_free{mountpoint="/"} / node_filesystem_files{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Inodes running low on {{ $labels.instance }}"
+          description: "Inode usage on {{ $labels.instance }} root filesystem above 90%"
+
+      # Disk I/O
+      - alert: HighDiskIO
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High disk I/O on {{ $labels.instance }}"
+          description: "Disk {{ $labels.device }} on {{ $labels.instance }} utilization above 80%"
+
+      # Network
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) + rate(node_network_transmit_bytes_total[5m]) > 1000000000
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High network traffic on {{ $labels.instance }}"
+          description: "Network interface {{ $labels.device }} on {{ $labels.instance }} exceeds 1GB/s"
+
+      # Load average
+      - alert: HighLoadAverage
+        expr: node_load1 > (count by(instance) (node_cpu_seconds_total{mode="idle"}) * 2)
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High load average on {{ $labels.instance }}"
+          description: "Load average on {{ $labels.instance }} is {{ $value }} (2x CPU cores)"
+
+      # Swap usage
+      - alert: HighSwapUsage
+        expr: (node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes * 100 > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High swap usage on {{ $labels.instance }}"
+          description: "Swap usage on {{ $labels.instance }} is above 50%"
+
+      # File descriptors
+      - alert: FileDescriptorsHigh
+        expr: (node_filefd_allocated / node_filefd_maximum) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "File descriptors high on {{ $labels.instance }}"
+          description: "File descriptor usage on {{ $labels.instance }} is above 80%"
+
+      # Time sync
+      - alert: TimeSyncError
+        expr: node_timex_sync_status == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Time sync error on {{ $labels.instance }}"
+          description: "System time on {{ $labels.instance }} is not synchronized"
+
+  - name: container-alerts
+    interval: 30s
+    rules:
+      # ===== CADVISOR / CONTAINER ALERTS =====
+      
+      - alert: ContainerDown
+        expr: container_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} down"
+          description: "Container {{ $labels.name }} on {{ $labels.instance }} has been down for 1 minute"
+
+      - alert: ContainerHighCPU
+        expr: (rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota/container_spec_cpu_period) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} high CPU"
+          description: "Container {{ $labels.name }} CPU usage above 85%"
+
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} high memory"
+          description: "Container {{ $labels.name }} memory usage above 85%"
+
+      - alert: ContainerOOMKilled
+        expr: increase(container_oom_events_total[10m]) > 0
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} OOM killed"
+          description: "Container {{ $labels.name }} was OOM killed {{ $value }} times in last 10 minutes"
+
+      - alert: ContainerRestartLoop
+        expr: increase(container_start_time_seconds[10m]) > 5
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} restart loop"
+          description: "Container {{ $labels.name }} restarted more than 5 times in 10 minutes"
+
+  - name: zimbra-alerts
+    interval: 60s
+    rules:
+      # ===== ZIMBRA MAIL SERVER ALERTS =====
+      
+      - alert: ZimbraDown
+        expr: up{job="zimbra"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mail
+        annotations:
+          summary: "Zimbra mail server down"
+          description: "Zimbra server has been down for 1 minute"
+          runbook: "https://wiki.devinconde.com/runbooks/zimbra-down"
+
+      - alert: ZimbraQueueHigh
+        expr: zimbra_mta_queue_size > 1000
+        for: 10m
+        labels:
+          severity: warning
+          service: mail
+        annotations:
+          summary: "Zimbra mail queue high"
+          description: "Zimbra MTA queue has {{ $value }} messages (threshold: 1000)"
+
+      - alert: ZimbraQueueCritical
+        expr: zimbra_mta_queue_size > 5000
+        for: 5m
+        labels:
+          severity: critical
+          service: mail
+        annotations:
+          summary: "Zimbra mail queue critical"
+          description: "Zimbra MTA queue has {{ $value }} messages (threshold: 5000)"
+
+      - alert: ZimbraDiskUsage
+        expr: (zimbra_disk_used_bytes / zimbra_disk_total_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: mail
+        annotations:
+          summary: "Zimbra disk usage high"
+          description: "Zimbra disk usage is {{ $value }}%"
+
+      - alert: ZimbraLDAPDown
+        expr: zimbra_ldap_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mail
+        annotations:
+          summary: "Zimbra LDAP down"
+          description: "Zimbra LDAP service is down"
+
+      - alert: ZimbraMailboxdDown
+        expr: zimbra_mailboxd_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mail
+        annotations:
+          summary: "Zimbra mailboxd down"
+          description: "Zimbra mailboxd service is down"
+
+      - alert: ZimbraAntiSpamQueue
+        expr: zimbra_amavis_queue_size > 500
+        for: 10m
+        labels:
+          severity: warning
+          service: mail
+        annotations:
+          summary: "Zimbra anti-spam queue high"
+          description: "Amavis queue has {{ $value }} messages"
+
+  - name: fortigate-alerts
+    interval: 60s
+    rules:
+      # ===== FORTIGATE FIREWALL ALERTS =====
+      
+      - alert: FortiGateDown
+        expr: up{job="fortigate"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: firewall
+        annotations:
+          summary: "FortiGate firewall down"
+          description: "FortiGate {{ $labels.instance }} has been unreachable for 1 minute"
+          runbook: "https://wiki.devinconde.com/runbooks/fortigate-down"
+
+      - alert: FortiGateHighCPU
+        expr: fortigate_cpu_usage > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: firewall
+        annotations:
+          summary: "FortiGate high CPU"
+          description: "FortiGate {{ $labels.instance }} CPU usage is {{ $value }}%"
+
+      - alert: FortiGateHighMemory
+        expr: fortigate_memory_usage > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: firewall
+        annotations:
+          summary: "FortiGate high memory"
+          description: "FortiGate {{ $labels.instance }} memory usage is {{ $value }}%"
+
+      - alert: FortiGateSessionHigh
+        expr: fortigate_session_count / fortigate_session_limit * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: firewall
+        annotations:
+          summary: "FortiGate session table high"
+          description: "FortiGate {{ $labels.instance }} session table at {{ $value }}% capacity"
+
+      - alert: FortiGateVPNUsersHigh
+        expr: fortigate_ssl_vpn_users > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: firewall
+        annotations:
+          summary: "FortiGate SSL VPN users high"
+          description: "FortiGate {{ $labels.instance }} has {{ $value }} SSL VPN users connected"
+
+      - alert: FortiGateHAOutOfSync
+        expr: fortigate_ha_sync_status == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: firewall
+        annotations:
+          summary: "FortiGate HA out of sync"
+          description: "FortiGate {{ $labels.instance }} HA cluster is out of sync"
+
+      - alert: FortiGateLogDiskHigh
+        expr: fortigate_log_disk_usage > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: firewall
+        annotations:
+          summary: "FortiGate log disk high"
+          description: "FortiGate {{ $labels.instance }} log disk usage is {{ $value }}%"
+
+  - name: blackbox-alerts
+    interval: 60s
+    rules:
+      # ===== BLACKBOX PROBER ALERTS =====
+      
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Blackbox probe failed for {{ $labels.instance }}"
+          description: "Probe {{ $labels.job }} for {{ $labels.instance }} failed for 2 minutes"
+
+      - alert: BlackboxProbeSlow
+        expr: probe_duration_seconds > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Blackbox probe slow for {{ $labels.instance }}"
+          description: "Probe {{ $labels.job }} for {{ $labels.instance }} took {{ $value }}s"
+
+      - alert: HTTPServiceDown
+        expr: probe_success{job=~"blackbox-http.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: web
+        annotations:
+          summary: "HTTP service down: {{ $labels.instance }}"
+          description: "HTTP probe for {{ $labels.instance }} failed"
+
+      - alert: HTTPSCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1h
+        labels:
+          severity: warning
+          service: web
+        annotations:
+          summary: "SSL certificate expiring soon for {{ $labels.instance }}"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+
+      - alert: HTTPSCertificateExpired
+        expr: probe_ssl_earliest_cert_expiry - time() < 0
+        for: 1m
+        labels:
+          severity: critical
+          service: web
+        annotations:
+          summary: "SSL certificate EXPIRED for {{ $labels.instance }}"
+          description: "SSL certificate for {{ $labels.instance }} has expired"
+
+      - alert: ICMPHostDown
+        expr: probe_success{job="blackbox-icmp"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: network
+        annotations:
+          summary: "Host unreachable: {{ $labels.instance }}"
+          description: "ICMP probe for {{ $labels.instance }} failed for 3 minutes"
+
+      - alert: TCPServiceDown
+        expr: probe_success{job="blackbox-tcp"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TCP service down: {{ $labels.instance }}"
+          description: "TCP probe for {{ $labels.instance }} failed for 2 minutes"
+
+  - name: prometheus-alerts
+    interval: 60s
+    rules:
+      # ===== PROMETHEUS SELF-MONITORING =====
+      
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Prometheus config reload failed"
+          description: "Prometheus configuration reload failed on {{ $labels.instance }}"
+
+      - alert: PrometheusTargetsDown
+        expr: count(prometheus_target_up == 0) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus targets down"
+          description: "{{ $value }} Prometheus targets are down"
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: rate(prometheus_rule_evaluation_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus rule evaluation failures"
+          description: "Prometheus rule evaluation failures on {{ $labels.instance }}"
+
+      - alert: PrometheusTSDBReloadsFailing
+        expr: rate(prometheus_tsdb_reloads_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus TSDB reloads failing"
+          description: "Prometheus TSDB reload failures on {{ $labels.instance }}"
+
+      - alert: PrometheusDiskSpaceLow
+        expr: (prometheus_tsdb_storage_bytes / prometheus_tsdb_storage_bytes_limit) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus disk space low"
+          description: "Prometheus TSDB disk usage is {{ $value }}%"
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Alertmanager down"
+          description: "Alertmanager has been down for 1 minute"
+
+      - alert: AlertmanagerClusterNotHealthy
+        expr: alertmanager_cluster_peer_status != 1
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Alertmanager cluster unhealthy"
+          description: "Alertmanager cluster peer {{ $labels.peer }} is not healthy"
+
+  - name: backup-alerts
+    interval: 3600s
+    rules:
+      # ===== BACKUP ALERTS =====
+      
+      - alert: BackupJobFailed
+        expr: borg_backup_exit_code != 0
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: "Backup job failed"
+          description: "Borg backup job failed with exit code {{ $value }} on {{ $labels.instance }}"
+          runbook: "https://wiki.devinconde.com/runbooks/backup-failed"
+
+      - alert: BackupJobOld
+        expr: time() - borg_backup_last_success_timestamp > 86400 * 2
+        for: 1h
+        labels:
+          severity: warning
+          service: backup
+        annotations:
+          summary: "Backup job hasn't run in 2 days"
+          description: "Last successful backup on {{ $labels.instance }} was {{ $value | humanizeDuration }} ago"
+
+      - alert: BackupRepoSizeHigh
+        expr: borg_repo_size_bytes / borg_repo_quota_bytes * 100 > 85
+        for: 1h
+        labels:
+          severity: warning
+          service: backup
+        annotations:
+          summary: "Backup repository size high"
+          description: "Borg repository on {{ $labels.instance }} is {{ $value }}% full"
+
+  - name: security-alerts
+    interval: 60s
+    rules:
+      # ===== SECURITY / AUDIT ALERTS =====
+      
+      - alert: SSHBruteForceAttempt
+        expr: increase(node_exporter_ssh_failed_logins_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "SSH brute force attempt on {{ $labels.instance }}"
+          description: "{{ $value }} failed SSH login attempts in 5 minutes on {{ $labels.instance }}"
+
+      - alert: SudoCommandFailed
+        expr: increase(sudo_command_failed_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "Multiple sudo failures on {{ $labels.instance }}"
+          description: "{{ $value }} failed sudo commands in 5 minutes"
+
+      - alert: AuditdServiceDown
+        expr: up{job="auditd"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Auditd service down"
+          description: "Audit daemon is not running on {{ $labels.instance }}"
+
+      - alert: FirewallReloadFailed
+        expr: increase(firewall_reload_failed_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Firewall reload failed"
+          description: "Firewall configuration reload failed on {{ $labels.instance }}"
+
+      - alert: UnauthorizedAccessAttempt
+        expr: increase(audit_access_denied_total[5m]) > 20
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High unauthorized access attempts"
+          description: "{{ $value }} access denied events in 5 minutes on {{ $labels.instance }}"

@@ -1,0 +1,269 @@
+{
+  "dashboard": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 0,
+    "id": 3,
+    "iteration": 1699999999999,
+    "links": [],
+    "panels": [
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [{"type": "value", "options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}}],
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "id": 1,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "up{job=\"fortigate\"}", "legendFormat": "FortiGate", "refId": "A"}],
+        "title": "FortiGate Status",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]},
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "id": 2,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "fortigate_cpu_usage", "legendFormat": "CPU", "refId": "A"}],
+        "title": "CPU Usage (%)",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]},
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "id": 3,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "fortigate_memory_usage", "legendFormat": "Memory", "refId": "A"}],
+        "title": "Memory Usage (%)",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [{"type": "value", "options": {"0": {"color": "red", "text": "OUT OF SYNC"}, "1": {"color": "green", "text": "IN SYNC"}}}],
+            "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "id": 4,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "fortigate_ha_sync_status", "legendFormat": "HA Sync", "refId": "A"}],
+        "title": "HA Sync Status",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "percent"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "id": 5,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "fortigate_cpu_usage", "legendFormat": "CPU", "refId": "A"},
+          {"expr": "fortigate_memory_usage", "legendFormat": "Memory", "refId": "B"}
+        ],
+        "title": "CPU & Memory Usage",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "id": 6,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "fortigate_session_count", "legendFormat": "Current Sessions", "refId": "A"},
+          {"expr": "fortigate_session_limit", "legendFormat": "Session Limit", "refId": "B"}
+        ],
+        "title": "Session Table",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "id": 7,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "fortigate_ssl_vpn_users", "legendFormat": "SSL VPN Users", "refId": "A"},
+          {"expr": "fortigate_ipsec_vpn_tunnels", "legendFormat": "IPsec Tunnels", "refId": "B"}
+        ],
+        "title": "VPN Status",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "Bps"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "id": 8,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "rate(fortigate_interface_bytes_in_total[5m])", "legendFormat": "{{interface}} In", "refId": "A"},
+          {"expr": "rate(fortigate_interface_bytes_out_total[5m])", "legendFormat": "{{interface}} Out", "refId": "B"}
+        ],
+        "title": "Interface Traffic",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "id": 9,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "fortigate_ips_detection_total", "legendFormat": "{{severity}}", "refId": "A"}
+        ],
+        "title": "IPS Detections (Total)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 1}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+          "overrides": []
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "id": 10,
+        "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+        "pluginVersion": "8.0.0",
+        "targets": [
+          {"expr": "rate(fortigate_firewall_logs_total[5m])", "legendFormat": "Firewall", "refId": "A"},
+          {"expr": "rate(fortigate_webfilter_logs_total[5m])", "legendFormat": "Web Filter", "refId": "B"},
+          {"expr": "rate(fortigate_antivirus_logs_total[5m])", "legendFormat": "Antivirus", "refId": "C"},
+          {"expr": "rate(fortigate_application_logs_total[5m])", "legendFormat": "Application", "refId": "D"}
+        ],
+        "title": "Security Logs Rate",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}, "unit": "percent"},
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 28},
+        "id": 11,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "fortigate_log_disk_usage", "legendFormat": "Log Disk", "refId": "A"}],
+        "title": "Log Disk Usage (%)",
+        "type": "stat"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {"color": {"mode": "thresholds"}, "mappings": [], "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}, "unit": "percent"},
+          "overrides": []
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 28},
+        "id": 12,
+        "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "textMode": "auto"},
+        "pluginVersion": "8.0.0",
+        "targets": [{"expr": "(fortigate_session_count / fortigate_session_limit) * 100", "legendFormat": "Session %", "refId": "A"}],
+        "title": "Session Utilization (%)",
+        "type": "stat"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "style": "dark",
+    "tags": ["fortinet", "firewall", "network", "security"],
+    "templating": {
+      "list": [
+        {
+          "allValue": null,
+          "current": {"selected": false, "text": "All", "value": "$__all"},
+          "datasource": "Prometheus",
+          "definition": "label_values(fortigate_cpu_usage, instance)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Instance",
+          "multi": true,
+          "name": "instance",
+          "options": [],
+          "query": {"query": "label_values(fortigate_cpu_usage, instance)", "refId": "StandardVariableQuery"},
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 1,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {},
+    "timezone": "",
+    "title": "FortiGate Firewall",
+    "uid": "fortigate-firewall",
+    "version": 1
+  },
+  "overwrite": true
+}

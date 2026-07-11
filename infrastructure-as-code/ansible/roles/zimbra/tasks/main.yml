@@ -1,0 +1,407 @@
+---
+# Zimbra Collaboration Suite Deployment
+# Devin Conde Mancilla - Production deployment for 200+ users
+
+- name: Pre-flight checks
+  hosts: zimbra
+  become: true
+  tasks:
+    - name: Check OS compatibility
+      assert:
+        that:
+          - ansible_distribution in ['RedHat', 'CentOS', 'Rocky', 'AlmaLinux', 'Ubuntu']
+          - ansible_distribution_major_version | int >= 8
+        fail_msg: "Zimbra requires RHEL 8+/Rocky 8+/AlmaLinux 8+ or Ubuntu 20.04+"
+      tags: ['zimbra', 'preflight']
+
+    - name: Check minimum resources
+      assert:
+        that:
+          - ansible_memory_mb.real.total >= 8192
+          - ansible_processor_vcpus >= 4
+        fail_msg: "Zimbra requires minimum 8GB RAM and 4 vCPUs"
+      tags: ['zimbra', 'preflight']
+
+    - name: Check disk space
+      assert:
+        that:
+          - ansible_devices.sda.size_gb | int >= 100
+        fail_msg: "Minimum 100GB disk required for Zimbra"
+      tags: ['zimbra', 'preflight']
+
+    - name: Check DNS resolution
+      command: dig +short MX zimbra.example.com
+      register: mx_check
+      failed_when: mx_check.stdout == ""
+      tags: ['zimbra', 'preflight']
+
+    - name: Check split DNS
+      command: dig +short A zimbra.example.com @127.0.0.1
+      register: split_dns
+      failed_when: split_dns.stdout == ""
+      tags: ['zimbra', 'preflight']
+
+- name: System preparation
+  hosts: zimbra
+  become: true
+  tasks:
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+      notify: reboot_required
+      tags: ['zimbra', 'selinux']
+
+    - name: Disable firewalld (will use iptables/nftables)
+      systemd:
+        name: firewalld
+        enabled: false
+        state: stopped
+      tags: ['zimbra', 'firewall']
+
+    - name: Install prerequisites
+      package:
+        name:
+          - perl
+          - perl-core
+          - sysstat
+          - sqlite
+          - gmp
+          - libaio
+          - lsof
+          - net-tools
+          - nmap-ncat
+          - openssl
+          - unzip
+          - wget
+          - tar
+          - gzip
+          - cronie
+          - rsyslog
+          - postfix
+        state: present
+      tags: ['zimbra', 'prereqs']
+
+    - name: Remove conflicting packages
+      package:
+        name:
+          - postfix
+          - sendmail
+          - exim
+          - dovecot
+          - httpd
+          - nginx
+          - mariadb-server
+          - mysql-server
+        state: absent
+      tags: ['zimbra', 'prereqs']
+
+    - name: Configure /etc/hosts
+      template:
+        src: zimbra-hosts.j2
+        dest: /etc/hosts
+        owner: root
+        group: root
+        mode: '0644'
+      tags: ['zimbra', 'hosts']
+
+    - name: Configure resolv.conf
+      template:
+        src: zimbra-resolv.conf.j2
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+      tags: ['zimbra', 'dns']
+
+    - name: Set kernel parameters for Zimbra
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - { key: 'vm.swappiness', value: '0' }
+        - { key: 'net.ipv4.tcp_fin_timeout', value: '15' }
+        - { key: 'net.ipv4.tcp_tw_reuse', value: '1' }
+        - { key: 'net.ipv4.ip_local_port_range', value: '1024 65535' }
+        - { key: 'fs.file-max', value: '1000000' }
+        - { key: 'kernel.shmall', value: '4294967296' }
+        - { key: 'kernel.shmmax', value: '4294967296' }
+        - { key: 'kernel.shmmni', value: '4096' }
+        - { key: 'kernel.sem', value: '250 32000 100 128' }
+      tags: ['zimbra', 'sysctl']
+
+    - name: Configure limits for zimbra user
+      pam_limits:
+        domain: zimbra
+        limit_type: "{{ item.type }}"
+        limit_item: "{{ item.item }}"
+        value: "{{ item.value }}"
+      loop:
+        - { type: 'soft', item: 'nofile', value: '65535' }
+        - { type: 'hard', item: 'nofile', value: '65535' }
+        - { type: 'soft', item: 'nproc', value: '65535' }
+        - { type: 'hard', item: 'nproc', value: '65535' }
+        - { type: 'soft', item: 'memlock', value: 'unlimited' }
+        - { type: 'hard', item: 'memlock', value: 'unlimited' }
+      tags: ['zimbra', 'limits']
+
+- name: Download and install Zimbra
+  hosts: zimbra
+  become: true
+  vars:
+    zimbra_version: "10.1.0"
+    zimbra_build: "GA_4069"
+    zimbra_package: "zcs-{{ zimbra_version }}_{{ zimbra_build }}.RHEL8_64.20231107134500.tgz"
+    zimbra_url: "https://files.zimbra.com/downloads/{{ zimbra_version }}/{{ zimbra_package }}"
+  tasks:
+    - name: Create zimbra user
+      user:
+        name: zimbra
+        shell: /bin/bash
+        home: /opt/zimbra
+        create_home: true
+        system: true
+      tags: ['zimbra', 'user']
+
+    - name: Download Zimbra package
+      get_url:
+        url: "{{ zimbra_url }}"
+        dest: "/tmp/{{ zimbra_package }}"
+        mode: '0644'
+        checksum: "sha256:{{ zimbra_sha256 }}"
+      tags: ['zimbra', 'download']
+
+    - name: Extract Zimbra package
+      unarchive:
+        src: "/tmp/{{ zimbra_package }}"
+        dest: /tmp
+        remote_src: true
+      tags: ['zimbra', 'extract']
+
+    - name: Create Zimbra install config
+      template:
+        src: zimbra-install-config.j2
+        dest: /tmp/zcs-install.cfg
+        owner: root
+        group: root
+        mode: '0600'
+      tags: ['zimbra', 'config']
+
+    - name: Install Zimbra (silent)
+      command: >
+        /tmp/zcs-{{ zimbra_version }}_{{ zimbra_build }}/install.sh
+        -s /tmp/zcs-install.cfg
+      args:
+        creates: /opt/zimbra/conf/localconfig.xml
+      tags: ['zimbra', 'install']
+
+    - name: Wait for Zimbra services
+      wait_for:
+        port: "{{ item }}"
+        host: localhost
+        timeout: 300
+      loop:
+        - 25
+        - 80
+        - 443
+        - 7071
+        - 993
+        - 995
+        - 587
+        - 465
+      tags: ['zimbra', 'verify']
+
+- name: Post-install configuration
+  hosts: zimbra
+  become: true
+  tasks:
+    - name: Configure TLS certificates
+      block:
+        - name: Create certificate directory
+          file:
+            path: /opt/zimbra/ssl/letsencrypt
+            state: directory
+            owner: zimbra
+            group: zimbra
+            mode: '0750'
+
+        - name: Copy Let's Encrypt certificates
+          copy:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            owner: zimbra
+            group: zimbra
+            mode: '0640'
+          loop:
+            - { src: '/etc/letsencrypt/live/mail.example.com/fullchain.pem', dest: '/opt/zimbra/ssl/letsencrypt/fullchain.pem' }
+            - { src: '/etc/letsencrypt/live/mail.example.com/privkey.pem', dest: '/opt/zimbra/ssl/letsencrypt/privkey.pem' }
+
+        - name: Deploy commercial certificate
+          become_user: zimbra
+          command: >
+            /opt/zimbra/bin/zmcertmgr deploycrt comm
+            /opt/zimbra/ssl/letsencrypt/privkey.pem
+            /opt/zimbra/ssl/letsencrypt/fullchain.pem
+          tags: ['zimbra', 'tls']
+
+    - name: Harden Zimbra configuration
+      block:
+        - name: Disable plaintext auth
+          become_user: zimbra
+          command: "{{ item }}"
+          loop:
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaAuthEnabled TRUE
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaTlsAuthOnly TRUE
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaTlsSecurityLevel encrypt
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaSmtpdTlsSecurityLevel encrypt
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaSmtpdTlsAuthOnly TRUE
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaSmtpdTlsCiphers high
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraMtaSmtpdTlsExcludeCiphers "aNULL,eNULL,EXPORT,DES,RC4,MD5,PSK,aECDH,EDH-DSS-DES-CBC3-SHA,EDH-RSA-DES-CBC3-SHA,KRB5-DES-CBC3-SHA"
+          tags: ['zimbra', 'hardening']
+
+        - name: Configure anti-spam/anti-virus
+          become_user: zimbra
+          command: "{{ item }}"
+          loop:
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraAmavisLogLevel 1
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraVirusDefinitionsUpdateFrequency 12h
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraSpamDefinitionsUpdateFrequency 12h
+            - /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraAmavisQuarantineEnabled TRUE
+          tags: ['zimbra', 'antispam']
+
+        - name: Configure DKIM
+          become_user: zimbra
+          command: >
+            /opt/zimbra/libexec/zmdkimkeyutil -a -d example.com -s selector1
+          tags: ['zimbra', 'dkim']
+
+        - name: Configure DMARC
+          become_user: zimbra
+          command: >
+            /opt/zimbra/bin/zmprov ms zimbra.example.com zimbraDmarcEnabled TRUE
+          tags: ['zimbra', 'dmarc']
+
+    - name: Configure backup
+      block:
+        - name: Create backup script
+          copy:
+            dest: /opt/zimbra/backup/zimbra-backup.sh
+            content: |
+              #!/bin/bash
+              # Zimbra Full Backup - Devin Conde Mancilla
+              set -euo pipefail
+              
+              BACKUP_DIR="/backup/zimbra"
+              DATE=$(date +%Y%m%d-%H%M%S)
+              RETENTION_DAYS=30
+              
+              mkdir -p "$BACKUP_DIR"
+              
+              echo "Starting Zimbra backup at $(date)"
+              
+              # Full backup
+              /opt/zimbra/bin/zmbackup -f -a all -t "$BACKUP_DIR" 2>&1 | logger -t zimbra-backup
+              
+              # Verify backup
+              if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                  echo "Backup completed successfully"
+                  logger -t zimbra-backup "Backup completed successfully"
+              else
+                  echo "Backup failed!"
+                  logger -t zimbra-backup "Backup FAILED"
+                  exit 1
+              fi
+              
+              # Cleanup old backups
+              find "$BACKUP_DIR" -type f -name "*.tgz" -mtime +$RETENTION_DAYS -delete
+              
+              echo "Backup finished at $(date)"
+            mode: '0750'
+            owner: zimbra
+            group: zimbra
+
+        - name: Schedule backup cron
+          cron:
+            name: "Zimbra daily backup"
+            user: zimbra
+            minute: "0"
+            hour: "2"
+            job: "/opt/zimbra/backup/zimbra-backup.sh >> /var/log/zimbra-backup.log 2>&1"
+          tags: ['zimbra', 'backup']
+
+    - name: Configure monitoring
+      block:
+        - name: Deploy Zimbra Prometheus exporter
+          copy:
+            dest: /opt/zimbra/exporter/zimbra_exporter.py
+            content: |
+              #!/usr/bin/env python3
+              # Zimbra Prometheus Exporter
+              from prometheus_client import start_http_server, Gauge, Counter
+              import zmq
+              import json
+              import time
+              import subprocess
+              
+              zimbra_up = Gauge('zimbra_up', 'Zimbra service status', ['service'])
+              zimbra_queue_size = Gauge('zimbra_mta_queue_size', 'MTA queue size', ['queue_type'])
+              zimbra_disk_usage = Gauge('zimbra_disk_usage_bytes', 'Disk usage', ['partition'])
+              zimbra_active_users = Gauge('zimbra_active_users', 'Active users')
+              zimbra_connected_clients = Gauge('zimbra_connected_clients', 'Connected clients')
+              
+              def collect():
+                  # Check services
+                  services = ['ldap', 'mailboxd', 'mta', 'logger', 'snmp', 'spell', 'proxy', 'memcached']
+                  for svc in services:
+                      try:
+                          result = subprocess.run(['zmcontrol', 'status'], capture_output=True, text=True)
+                          zimbra_up.labels(service=svc).set(1 if f"{svc} is running" in result.stdout else 0)
+                      except:
+                          zimbra_up.labels(service=svc).set(0)
+              
+              if __name__ == '__main__':
+                  start_http_server(9101)
+                  while True:
+                      collect()
+                      time.sleep(60)
+            mode: '0750'
+            owner: zimbra
+            group: zimbra
+
+        - name: Create systemd service for exporter
+          copy:
+            dest: /etc/systemd/system/zimbra-exporter.service
+            content: |
+              [Unit]
+              Description=Zimbra Prometheus Exporter
+              After=network.target zimbra.service
+              
+              [Service]
+              Type=simple
+              User=zimbra
+              Group=zimbra
+              ExecStart=/opt/zimbra/exporter/zimbra_exporter.py
+              Restart=on-failure
+              RestartSec=10
+              
+              [Install]
+              WantedBy=multi-user.target
+            mode: '0644'
+
+        - name: Enable exporter
+          systemd:
+            name: zimbra-exporter
+            enabled: true
+            state: started
+          tags: ['zimbra', 'monitoring']
+
+  handlers:
+    - name: reboot_required
+      reboot:
+        msg: "SELinux disabled, reboot required"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 10
+        post_reboot_delay: 30

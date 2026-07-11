@@ -1,0 +1,315 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'production'
+    environment: 'prod'
+    region: 'la-paz-bo'
+    managed_by: 'devin-conde'
+    team: 'infra'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Rule files
+rule_files:
+  - 'rules/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # =============================================================================
+  # PROMETHEUS SELF-MONITORING
+  # =============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'monitoring'
+          component: 'prometheus'
+
+  # =============================================================================
+  # ALERTMANAGER
+  # =============================================================================
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+        labels:
+          service: 'monitoring'
+          component: 'alertmanager'
+
+  # =============================================================================
+  # GRAFANA
+  # =============================================================================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'monitoring'
+          component: 'grafana'
+
+  # =============================================================================
+  # NODE EXPORTER - Host metrics
+  # =============================================================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'infrastructure'
+          component: 'node-exporter'
+    metric_relabel_configs:
+      # Drop some noisy metrics
+      - source_labels: [__name__]
+        regex: 'node_(filesystem_avail|filesystem_free|filesystem_size)_bytes'
+        action: keep
+
+  # =============================================================================
+  # CADVISOR - Container metrics
+  # =============================================================================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'infrastructure'
+          component: 'cadvisor'
+
+  # =============================================================================
+  # PUSHGATEWAY - Batch jobs
+  # =============================================================================
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+        labels:
+          service: 'monitoring'
+          component: 'pushgateway'
+
+  # =============================================================================
+  # BLACKBOX EXPORTER - Probing
+  # =============================================================================
+  - job_name: 'blackbox-exporter'
+    static_configs:
+      - targets: ['blackbox-exporter:9115']
+        labels:
+          service: 'monitoring'
+          component: 'blackbox-exporter'
+
+  # =============================================================================
+  # ZIMBRA EXPORTER - Mail server metrics
+  # =============================================================================
+  - job_name: 'zimbra'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['zimbra-exporter:9101']
+        labels:
+          service: 'mail'
+          component: 'zimbra'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+
+  # =============================================================================
+  # FORTINET EXPORTER - Firewall metrics
+  # =============================================================================
+  - job_name: 'fortinet'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['fortinet-exporter:9102']
+        labels:
+          service: 'firewall'
+          component: 'fortigate'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+
+  # =============================================================================
+  # BLACKBOX PROBES - HTTP/HTTPS/ICMP/TCP/DNS
+  # =============================================================================
+  
+  # HTTP/HTTPS probes for web services
+  - job_name: 'blackbox-https'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://www.devinconde.com
+          - https://mail.example.com
+          - https://monitoring.example.com
+          - https://wiki.example.com
+          - https://git.example.com
+          - https://ci.example.com
+        labels:
+          service: 'web'
+          team: 'infra'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://server1.example.com:8080
+          - http://server2.example.com:8080
+          - http://app1.example.com:3000
+          - http://app2.example.com:3000
+        labels:
+          service: 'web'
+          team: 'dev'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ICMP probes for host reachability
+  - job_name: 'blackbox-icmp'
+    metrics_path: /probe
+    params:
+      module: [icmp]
+    static_configs:
+      - targets:
+          - server1.example.com
+          - server2.example.com
+          - firewall.example.com
+          - switch-core.example.com
+          - switch-access.example.com
+          - nas-synology.example.com
+          - backup-server.example.com
+        labels:
+          service: 'network'
+          team: 'infra'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # TCP probes for specific services
+  - job_name: 'blackbox-tcp'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - mail.example.com:25
+          - mail.example.com:465
+          - mail.example.com:587
+          - mail.example.com:993
+          - mail.example.com:995
+          - firewall.example.com:443
+          - vpn.example.com:1194
+          - db1.example.com:5432
+          - db2.example.com:5432
+          - redis.example.com:6379
+          - kafka.example.com:9092
+        labels:
+          service: 'network'
+          team: 'infra'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # DNS probes
+  - job_name: 'blackbox-dns'
+    metrics_path: /probe
+    params:
+      module: [dns]
+    static_configs:
+      - targets:
+          - dns1.example.com
+          - dns2.example.com
+          - 8.8.8.8
+          - 1.1.1.1
+        labels:
+          service: 'dns'
+          team: 'infra'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # =============================================================================
+  # EXTERNAL SERVICES (via blackbox)
+  # =============================================================================
+  - job_name: 'external-services'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://www.google.com
+          - https://www.github.com
+          - https://www.dockerhub.com
+          - https://registry.terraform.io
+        labels:
+          service: 'external'
+          team: 'infra'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # =============================================================================
+  # WINDOWS EXPORTER (if Windows servers exist)
+  # =============================================================================
+  - job_name: 'windows-exporter'
+    static_configs:
+      - targets: ['win-exporter1.example.com:9182', 'win-exporter2.example.com:9182']
+        labels:
+          service: 'infrastructure'
+          os: 'windows'
+          team: 'infra'
+    scrape_interval: 60s
+
+  # =============================================================================
+  # DATABASE EXPORTERS
+  # =============================================================================
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter1:9187', 'postgres-exporter2:9187']
+        labels:
+          service: 'database'
+          db: 'postgresql'
+          team: 'infra'
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter1:9121', 'redis-exporter2:9121']
+        labels:
+          service: 'database'
+          db: 'redis'
+          team: 'infra'
+
+  # =============================================================================
+  # APPLICATION METRICS (if apps expose /metrics)
+  # =============================================================================
+  - job_name: 'applications'
+    static_configs:
+      - targets: ['app1.example.com:8080', 'app2.example.com:8080']
+        labels:
+          service: 'application'
+          team: 'dev'
+    metrics_path: '/actuator/prometheus'
